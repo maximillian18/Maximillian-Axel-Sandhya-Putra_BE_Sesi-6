@@ -1,0 +1,122 @@
+// app/Http/Controllers/TodoController.php
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Todo;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class TodoController extends Controller
+{
+
+    public function index()
+    {
+        $todos = Todo::orderBy('created_at', 'desc')->get();
+        
+        return response()->json([
+            'status' => 'success',
+            'data' => $todos
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'priority' => 'required|string|in:low,medium,high',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Simpan data
+        $todo = Todo::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'priority' => $request->priority,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Todo created successfully',
+            'data' => $todo
+        ], 201);
+    }
+
+    public function show($id)
+    {
+        $todo = Todo::find($id);
+
+        if (!$todo) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Todo not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $todo
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $todo = Todo::find($id);
+
+        if (!$todo) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Todo not found'
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'title' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string',
+            'priority' => 'sometimes|required|string|in:low,medium,high',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $todo->update($request->only(['title', 'description', 'priority']));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Todo updated successfully',
+            'data' => $todo
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $todo = Todo::find($id);
+
+        if (!$todo) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Todo not found'
+            ], 404);
+        }
+
+        $todo->delete();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Todo deleted successfully'
+        ]);
+    }
+}
